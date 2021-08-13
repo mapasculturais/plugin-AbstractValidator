@@ -19,6 +19,7 @@ use MapasCulturais\i;
  */
 abstract class AbstractValidator extends \MapasCulturais\Plugin
 {
+    const VALIDATOR_AGENT_TYPE = 2;
     /**
      * Usuário validador
      *
@@ -28,14 +29,16 @@ abstract class AbstractValidator extends \MapasCulturais\Plugin
 
     function __construct(array $config=[])
     {
-        $slug = $this->getSlug();
+        $uc_slug = strtoupper($this->getSlug());
         $config += [
             // se true, só considera a validação deste validador na consolidação
-            "is_absolute" => false,
+            "is_absolute" => env("{$uc_slug}_IS_ABSOLUTE", false),
             // se true, só consolida se houver ao menos uma homologação
-            "homologation_required" => true,
+            "homologation_required" => env("{$uc_slug}_HOMOLOGATION_REQUIRED", true),
+            // callback para determinar se a oportunidade é gerenciada (pelo plugin StreamlinedOpportunity)
+            "is_opportunity_managed_handler" => function ($opportunity) { return false; },
             // lista de validadores requeridos na consolidação
-            "required_validations" => (array) json_decode(env(strtoupper($slug) . "_REQUIRED_VALIDATIONS", "[]")),
+            "required_validations" => (array) json_decode(env("{$uc_slug}_REQUIRED_VALIDATIONS", "[]")),
         ];
         parent::__construct($config);
         return;
@@ -198,18 +201,6 @@ abstract class AbstractValidator extends \MapasCulturais\Plugin
     }
 
     /**
-     * Retorna os ids das oportunidades gerenciadas
-     */
-    protected function getOpportunitiesIds($target_slug=null)
-    {
-        $app = App::i();
-        $result = [];
-        $slug = $this->getSlug();
-        $app->applyHook("validator($slug).getManagedOpportunities", [&$result, $target_slug]);
-        return $result;
-    }
-
-    /**
      * Retorna o authUid do usuário do plugin validador
      *
      * @return string
@@ -248,7 +239,7 @@ abstract class AbstractValidator extends \MapasCulturais\Plugin
             $app->em->flush();
             $agent = new Agent($user);
             $agent->name = $this->getName();
-            $agent->type = $this->config["validator_agent_type"];
+            $agent->type = self::VALIDATOR_AGENT_TYPE;
             $agent->status = Agent::STATUS_ENABLED;
             $agent->save();
             $app->em->flush();
@@ -264,6 +255,14 @@ abstract class AbstractValidator extends \MapasCulturais\Plugin
     {
         $app = App::i();
         return $app->repo("User")->findOneBy(["authUid" => $this->getAuthUid()]);
+    }
+
+    protected function isOpportunityManaged(Opportunity $opportunity)
+    {
+        $result = $this->config["is_opportunity_managed_handler"]($opportunity);
+        $slug = $this->getSlug();
+        App::i()->applyHookBoundTo($opportunity, "validator($slug).isOpportunityManaged", [&$result]);
+        return $result;
     }
 
     /**

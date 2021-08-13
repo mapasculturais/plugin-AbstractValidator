@@ -3,12 +3,13 @@ Plugin que agrega funcionalidades gerais de validação para uso pelos demais va
 
 ## Exemplo de Configuração
 
-É necessário definir o tipo de agente, conforme configuração da instalação, para o usuário validador.
 ```
         "AbstractValidator" => [
             "namespace" => "AbstractValidator",
             "config" => [
-                "validator_agent_type" => 2,
+                "is_opportunity_managed_handler" => function ($opportunity) {
+                    return ($opportunity->id == 42);
+                },
             ]
         ],
 ```
