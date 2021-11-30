@@ -10,6 +10,7 @@ use MapasCulturais\Entities\Registration;
 use MapasCulturais\Entities\User;
 use MapasCulturais\i;
 
+require_once __DIR__ . "/../AbstractValidator/vendor/autoload.php";
 /**
  * @property-read \MapasCulturais\Entities\User $user
  * @property-read string $slug
