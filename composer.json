@@ -1,0 +1,6 @@
+{
+    "name": "MapasCulturais/plugin-AbstractValidator",   
+    "require": {
+        "league/csv": "^9.6"
+    }
+}
